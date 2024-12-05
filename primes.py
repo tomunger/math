@@ -1,8 +1,53 @@
 from typing import List
-import genprimesieve
-import math
-import numpy as np
-import pandas as pd
+
+
+
+# Sieve of Eratosthenes
+# Code by David Eppstein, UC Irvine, 28 Feb 2002
+# http://code.activestate.com/recipes/117119/
+
+def gen_primes_sieve():
+    """ Generate an infinite sequence of prime numbers.
+    """
+    # Maps composites to primes witnessing their compositeness.
+    # This is memory efficient, as the sieve is not "run forward"
+    # indefinitely, but only as long as required by the current
+    # number being tested.
+    #
+    D = {}
+    
+    # The running integer that's checked for primeness
+    q = 2
+    
+    while True:
+        if q not in D:
+            # q is a new prime.
+            # Yield it and mark its first multiple that isn't
+            # already marked in previous iterations
+            # 
+            yield q
+            D[q * q] = [q]
+        else:
+            # q is composite. D[q] is the list of primes that
+            # divide it. Since we've reached q, we no longer
+            # need it in the map, but we'll mark the next 
+            # multiples of its witnesses to prepare for larger
+            # numbers
+            # 
+            for p in D[q]:
+                D.setdefault(p + q, []).append(p)
+            del D[q]
+        
+        q += 1
+
+
+def gen_primes_sieve_to(n: int) -> List[int]:
+	L = []
+	for p in gen_primes_sieve():
+		if p > n: 
+			break
+		L.append(p)
+	return L
 
 
 def find_factors_fwdall(n: int) -> List[int]:
@@ -40,7 +85,7 @@ def find_factors_rev(n: int, p: List[int]) -> List[int]:
 		Exception: Not enough prime numbers provided.
 
 	Returns:
-		List[int]: List of factors, smallest first
+		List[int]: List of factors, largest first
 	"""
 	for mpi in range(len(p)):
 		if p[mpi] > n//2:
@@ -97,53 +142,3 @@ def primes_to_powers(f: List[int], P: List[int]) -> List[int]:
 	return powers
 
 
-
-nums = range(2, 100000)
-P = genprimesieve.gen_primes_sieve_to(max(nums))
-print (f"{len(P)} primes, max: {P[-1]}")
-
-
-a = []
-powers = []
-for n in nums:
-	if not n in P:
-		a.append( (n, find_factors_fwdall(n)) )
-
-for q in a:
-	#print(f"{q[0]} factors {q[1]}")
-
-	prod = 1
-	for p in q[1]:
-		if not p in P:
-			print (f"Not prime {p}")
-		prod *= p
-	if prod != q[0]:
-		print (f"  product of factors is not correct:  {prod}")
-
-	revfactros = find_factors_rev(q[0], P)
-	revfactros.sort()
-	if revfactros != q[1]:
-		print (f"  reverse factors are not correct:  {revfactros}")
-
-	powers.append(primes_to_powers(q[1], P))
-
-
-#
-# Take the powers python array and make a pandas dataframe
-# where columns are prime numbers, rows are integers, and cell values
-# are the power of prime.  product of primes raised to powers are the 
-# index integer.
-#
-# powersnp = np.array(powers)										# Make a numpy array
-# df = pd.DataFrame(powers, columns=P, index=[q[0] for q in a])	# and then a dataframe
-# print (df.shape)
-# Pr = P.copy()													# Create a copy of the list of primes
-# Pr.reverse()													# and reverse that 
-# for p in Pr:													# so we can search from largest to smallest
-# 	print (f"{p} {df[p].sum()}")		
-# 	if df[p].sum() == 0:										# If the column contains no powers
-# 		df.drop(p, axis='columns', inplace=True)				#   we drop that column
-# 	else:
-# 		break													#   otherwise, we have reached the largest prime used and exit the loop
-# print (df.shape)
-# df.to_csv("primefactors.csv")
